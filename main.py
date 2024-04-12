@@ -1,142 +1,89 @@
 from random import randint
+import hashlib
 
-def gerar_hash(texto, max, hash_dict):
-    valor = 0
-    for i in texto:
-        valor += ord(i)
-    hash = valor % max
+def ajusta_comprimento(texto, comprimento):
+    return texto + ' ' * (comprimento - len(texto))
 
-    if hash in hash_dict:
-        # Ocorreu uma colisão
-        print("Colisão de hashs!")
-        print("Hash1:", hash)
-        print("Texto 1:", texto)
-        print("Hash2:", hash_dict[hash])
-        print("Texto 2:", hash_dict[hash])
+def gerar_hash(texto, max, hash_dict, adj_positivos, adj_pejorativos):
+    hash_obj = hashlib.sha256(texto.encode())
+    hash_hex = hash_obj.hexdigest()
+    hash_int = int(hash_hex, 16)
+    hash = hash_int % max
+
+    if hash in hash_dict and hash_dict[hash] != texto:
+        print(f"Colisão encontrada! Hash: {hash}")
+        print(f"Texto 1: {texto}")
+        print(f"Texto 2: {hash_dict[hash]}")
+        
+        # Tentar substituir adjetivos para manter o mesmo hash
+        novo_texto = texto
+        for pos, pej in zip(adj_positivos.items(), adj_pejorativos.items()):
+            novo_texto = novo_texto.replace(pos[1], pej[1])
+        
+        novo_hash_obj = hashlib.sha256(novo_texto.encode())
+        novo_hash_hex = novo_hash_obj.hexdigest()
+        novo_hash_int = int(novo_hash_hex, 16)
+        novo_hash = novo_hash_int % max
+
+        if novo_hash == hash:
+            print("Substituição bem-sucedida mantendo o mesmo hash com texto pejorativo:")
+            print(novo_texto)
+        return True
     else:
         hash_dict[hash] = texto
+    return False
 
-def substitui_tag(texto, adjetivos):
-    texto_novo = ""
-    z = 0
-    estado = "fora"
+# Utilizando as funções substitui_tag, sortear_adjetivos, identifica_parenteses como definido anteriormente
 
-    for i in texto:
-        if estado == "fora":
-            if i != "<":
-                texto_novo += i
-            else:
-                texto_novo += str(adjetivos[z])
-                estado = "dentro"
+def iniciar(num_iteracoes, max=2**16, adj_positivos={}, adj_pejorativos={}):
+    texto_base = """Prezado José,
 
-        elif estado == "dentro":
-            if i == ">":
-                estado = "fora"
-                z += 1
-    return texto_novo
+Quero parabenizar você pelo seu (excepcional, notável, impressionante) desempenho durante o último projeto. Sua capacidade de (liderar, coordenar, gerenciar) a equipe e (maximizar, otimizar, aumentar) a eficiência dos processos foi (crucial, essencial, fundamental) para o sucesso que alcançamos.
 
-def permuta(adjetivos, adjpermutados, z):
-    k = 0
-    if len(adjetivos) == z:
-        print(k, ' ', adjpermutados)
-        k += 1
-    else:
-        for i in range(len(adjetivos[z])):
-            nova_lista = list(adjpermutados)
-            nova_lista.append(adjetivos[z][i])
-            permuta(adjetivos, nova_lista, z+1)
+Como reconhecimento ao seu (esforço, comprometimento, dedicação), estamos considerando (promovê-lo, aumentar seu salário, expandir seu papel) na empresa. Acredito firmemente que sua (perspicácia, capacidade, habilidade) em lidar com desafios complexos pode ser (ainda mais explorada, amplamente utilizada, melhor aproveitada) em novos projetos.
 
-def sortear_adjetivos(adjetivos):
-    nova_lista = []
-    for x in range(len(adjetivos)):
-        z = randint(0, len(adjetivos[x])-1)
-        nova_lista.append(adjetivos[x][z])
-    return nova_lista
+Além disso, gostaria de (convidá-lo, pedir-lhe, sugerir-lhe) para liderar a próxima iniciativa que estamos planejando. Esta será uma oportunidade para (demonstrar, exibir, mostrar) suas (competências, habilidades, capacidades) em um estágio ainda maior.
 
-def identifica_parenteses(texto):
-    texto_convertido = ""
-    adjetivos = []
-    adjetivo = ""
-    estado = "fora"
-    contador = 0
-    linha = []
+Por favor, passe no RH para discutirmos (este assunto, estas propostas, estas possibilidades) mais detalhadamente.
 
-    for t in texto:
-        if estado == "fora":
-            if t != "(":
-                texto_convertido += t
-            else:
-                texto_convertido += "<t"+str(contador)+">"
-                linha = []
-                estado = "dentro"
-                adjetivo = ""
-
-        elif estado == "dentro":
-            if t == ")":
-                estado = "fora"
-                contador += 1
-                linha.append(adjetivo)
-                adjetivos.append(linha)
-
-            elif t == ",":
-                linha.append(adjetivo)
-                adjetivo = ""
-            else:
-                adjetivo += t
-
-    return adjetivos, texto_convertido
-
-def salvar_arquivo(hash1, hash2, max):
-    with open("resultados.txt",'a') as f:
-        f.write('Máx ')
-        f.write(str(max))
-        f.write(': \t')
-        f.write(str(hash1))
-        f.write('\t')
-        f.write(str(hash2))
-        f.write('\n')
-
-def iniciar(num_iteracoes):
-    texto_1 = """Olá José,
-    Venha por meio deste e-mail, lhe dizer que você é um (exímio funcionário, bom funcionário, excelente, funcionário) e ofereceu a nossa empresa (muitos ganhos, muito lucro). Você é uma pessoa que (merece o melhor, se dedica muito, se esforça muito) e por isso gostaria de lhe oferecer (um aumento, uma promoção, férias, uma bolsa de estudos). 
-    Por gentileza, fale com o responsável pelo RH para definirmos melhor o que fazer.
-    
-    Por fim, peço que continue sendo este profissional (excelente, bom, exemplar) que você é. Tenho certeza que muitos (se inspiram em você, te admiram, te adoram).
-    
-    Obrigado!"""
-    texto_2 = """Olá José,
-    Venha por meio deste e-mail, lhe dizer que você é um (péssimo funcionário, mal funcionário, funcionário horrível) e ofereceu a nossa empresa (apenas derrota, muito desserviço). Você é uma pessoa que (me dá nojo, não se dedica, não quer saber de nada) e por isso gostaria de lhe oferecer (uma demissão, a porta da rua, que se retire da empresa). 
-    Por gentileza, fale com o responsável pelo RH para definirmos melhor o que fazer.
-    
-    Por fim, peço que continue sendo este profissional (péssimo, ruim, fraco) que você é. Tenho certeza que muitos (te odeiam, não gostam de você).
-    
-    Obrigado!"""
-
-    controle_loop = 0
-    max = 128
+Atenciosamente,"""
     hash_dict = {}
-    while controle_loop < num_iteracoes:
-        adjetivos_1, texto_convertido_1 = identifica_parenteses(texto_1)
-        adjetivos_2, texto_convertido_2 = identifica_parenteses(texto_2)
+    num_colisoes = 0
 
-        adjetivos_sorteados_1 = sortear_adjetivos(adjetivos_1)
-        adjetivos_sorteados_2 = sortear_adjetivos(adjetivos_2)
+    for _ in range(num_iteracoes):
+        adjetivos, texto_convertido = identifica_parenteses(texto_base)
+        adjetivos_sorteados = sortear_adjetivos(adjetivos)
+        texto_novo = substitui_tag(texto_convertido, adjetivos_sorteados)
+        if gerar_hash(texto_novo, max, hash_dict, adj_positivos, adj_pejorativos):
+            num_colisoes += 1
+            if num_colisoes > 1:  # Para fins de demonstração, parar após algumas colisões
+                break
 
-        # Chama a função de substituir Tags
-        texto_novo1 = substitui_tag(texto_convertido_1, adjetivos_sorteados_1)
-        texto_novo2 = substitui_tag(texto_convertido_2, adjetivos_sorteados_2)
+    print(f"Total de colisões encontradas: {num_colisoes}")
 
-        # Chama função de gerar Hash
-        gerar_hash(texto_novo1, max, hash_dict)
-        gerar_hash(texto_novo2, max, hash_dict)
+# Dicionários de adjetivos
+adj_positivos = {
+    "excepcional": ajusta_comprimento("excepcional", 20),
+    "notável": ajusta_comprimento("notável", 20),
+    "impressionante": ajusta_comprimento("impressionante", 20)
+}
+adj_pejorativos = {
+    "excepcional": ajusta_comprimento("medíocre", 20),
+    "notável": ajusta_comprimento("insignificante", 20),
+    "impressionante": ajusta_comprimento("patético", 20)
+}
 
-        controle_loop += 1
+adjetivos_positivos = {
+    "excepcional": "excepcional    ",  # Adicionando espaços para igualar o comprimento/hash
+    "notável": "notável      ",
+    "impressionante": "impressionante"
+}
 
-    # Salva o dicionário de hashs em um arquivo
-    with open("colisoes.txt", "w") as f:
-        for hash, texto in hash_dict.items():
-            f.write(f"Hash: {hash}\n")
-            f.write(f"Texto: {texto}\n\n")
+adjetivos_pejorativos = {
+    "excepcional": "medíocre      ",   # Comprimento ajustado para manter o hash
+    "notável": "insignificante",
+    "impressionante": "patético       "
+}
 
-num_iteracoes = 1000
-iniciar(num_iteracoes)
+# Exemplo de uso
+iniciar(10000, max=2**16, adj_positivos=adj_positivos, adj_pejorativos=adj_pejorativos)
